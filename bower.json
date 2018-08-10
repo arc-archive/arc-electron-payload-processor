@@ -1,0 +1,15 @@
+{
+  "name": "arc-electron-payload-processor",
+  "description": "A module to transform ARC request data into a serializable form",
+  "license": "Apache-2.0",
+  "authors": [
+    "Pawel Psztyc",
+    "The Advanced REST client authors <arc@mulesoft.com>"
+  ],
+  "devDependencies": {
+    "polymer": "Polymer/polymer#^2.0.0",
+    "web-component-tester": "Polymer/web-component-tester#^6.0.0",
+    "iron-test-helpers": "PolymerElements/iron-test-helpers#^2.0.0",
+    "webcomponentsjs": "webcomponents/webcomponentsjs#^1.0.0"
+  }
+}

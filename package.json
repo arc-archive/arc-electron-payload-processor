@@ -1,0 +1,32 @@
+{
+  "name": "@advanced-rest-client/arc-electron-payload-processor",
+  "version": "0.1.0",
+  "description": "An electron module to transform ARC request data into a serializable form in the renderer process",
+  "main": "payload-processor.js",
+  "scripts": {
+    "test": "polymer test --plugin local",
+    "update-types": "gen-typescript-declarations --deleteExisting --outDir ."
+  },
+  "keywords": [
+    "arc",
+    "electron",
+    "payload"
+  ],
+  "authors": [
+    "Pawel Psztyc",
+    "The Advanced REST client authors <arc@mulesoft.com>"
+  ],
+  "license": "Apache-2.0",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/advanced-rest-client/arc-electron-payload-processor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/advanced-rest-client/arc-electron-payload-processor/issues",
+    "email": "arc@mulesoft.com"
+  },
+  "devDependencies": {
+    "@polymer/gen-typescript-declarations": "^1.1.1"
+  }
+}

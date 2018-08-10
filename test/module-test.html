@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <script src="../../webcomponentsjs/webcomponents-loader.js"></script>
+  <script src="../../web-component-tester/browser.js"></script>
+  <script src="../../iron-test-helpers/test-helpers.js"></script>
+  <link rel="import" href="../payload-processor.html">
+</head>
+  <body>
+    <script>
+    /* global PayloadProcessor */
+    suite('arc-electron-payload-processor', () => {
+      suite('_blobToString()', function() {
+        const b = new Blob(['***'], {type: 'text/plain'});
+        test('Returns a promise', function() {
+          const result = PayloadProcessor._blobToString(b);
+          assert.typeOf(result.then, 'function');
+          return result;
+        });
+        test('Promise results to a string', function() {
+          return PayloadProcessor._blobToString(b)
+          .then((result) => assert.typeOf(result, 'string'));
+        });
+        test('String is a valid data url', function() {
+          return PayloadProcessor._blobToString(b)
+          .then((result) => assert.equal(result, 'data:text/plain;base64,Kioq'));
+        });
+      });
+
+      suite('_dataURLtoBlob()', function() {
+        const data = 'data:text/plain;base64,Kioq';
+
+        test('Converts dataurl to blob', () => {
+          const result = PayloadProcessor._dataURLtoBlob(data);
+          assert.typeOf(result, 'blob');
+        });
+
+        test('Restores the type', () => {
+          const result = PayloadProcessor._dataURLtoBlob(data);
+          assert.equal(result.type, 'text/plain');
+        });
+
+        test('Size match', () => {
+          const result = PayloadProcessor._dataURLtoBlob(data);
+          assert.equal(result.size, 3);
+        });
+      });
+
+      suite('_createMultipartEntry()', function() {
+        let fd;
+        setup(function() {
+          const b = new Blob(['***'], {type: 'text/plain'});
+          fd = new FormData();
+          fd.append('file', b, 'file-name');
+          fd.append('text', 'abcd');
+          fd.append('text-part', b, 'text-part');
+          fd._arcMeta = {
+            textParts: ['text-part']
+          };
+        });
+        test('Returns a promise', function() {
+          const result = PayloadProcessor._createMultipartEntry(fd);
+          assert.typeOf(result.then, 'function');
+          return result;
+        });
+        test('Promise results to an array', function() {
+          return PayloadProcessor._createMultipartEntry(fd)
+          .then((result) => assert.typeOf(result, 'array'));
+        });
+        test('Computes file part', () => {
+          return PayloadProcessor._createMultipartEntry(fd)
+          .then((data) => {
+            const part = data[0];
+            assert.isTrue(part.isFile);
+            assert.equal(part.name, 'file');
+            assert.equal(part.value, 'data:text/plain;base64,Kioq');
+          });
+        });
+        test('Computes text part', () => {
+          return PayloadProcessor._createMultipartEntry(fd)
+          .then((data) => {
+            const part = data[1];
+            assert.isFalse(part.isFile);
+            assert.equal(part.name, 'text');
+            assert.equal(part.value, 'abcd');
+          });
+        });
+        test('Sets isTextBlob', () => {
+          return PayloadProcessor._createMultipartEntry(fd)
+          .then((data) => {
+            const part = data[2];
+            assert.isFalse(part.isFile);
+            assert.isTrue(part.isTextBlob);
+            assert.equal(part.name, 'text-part');
+            assert.equal(part.value, 'data:text/plain;base64,Kioq');
+          });
+        });
+      });
+
+      suite('restoreMultipart()', function() {
+        test('Returns empty FormData when no model', () => {
+          const result = PayloadProcessor.restoreMultipart();
+          assert.typeOf(result, 'formdata');
+        });
+
+        test('Processes text entry', () => {
+          const fd = PayloadProcessor.restoreMultipart([{
+            isFile: false,
+            name: 'test-name',
+            value: 'test-value'
+          }]);
+          const result = fd.get('test-name');
+          assert.equal(result, 'test-value');
+        });
+
+        test('Processes text entry with content type', () => {
+          const fd = PayloadProcessor.restoreMultipart([{
+            isFile: false,
+            isTextBlob: true,
+            name: 'test-name',
+            value: 'data:text/plain;base64,Kioq'
+          }]);
+          const result = fd.get('test-name');
+          assert.equal(result.type, 'text/plain');
+        });
+
+        test('Sets text parts meta data', () => {
+          const fd = PayloadProcessor.restoreMultipart([{
+            isFile: false,
+            isTextBlob: true,
+            name: 'test-name',
+            value: 'data:text/plain;base64,Kioq'
+          }]);
+          assert.typeOf(fd._arcMeta, 'object');
+          assert.typeOf(fd._arcMeta.textParts, 'array');
+          assert.equal(fd._arcMeta.textParts[0], 'test-name');
+        });
+      });
+    });
+    </script>
+  </body>
+</html>
