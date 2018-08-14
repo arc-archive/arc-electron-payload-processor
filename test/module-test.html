@@ -138,6 +138,38 @@
           assert.equal(fd._arcMeta.textParts[0], 'test-name');
         });
       });
+
+      suite('restoreMultipart()', () => {
+        test('Do nothing when no created payload data', () => {
+          const result = PayloadProcessor.restorePayload({});
+          assert.deepEqual(result, {});
+        });
+
+        test('Restores blob data', () => {
+          const data = 'data:text/plain;base64,Kioq';
+          const result = PayloadProcessor.restorePayload({
+            blob: data
+          });
+          assert.typeOf(result.payload, 'blob');
+          assert.equal(result.payload.type, 'text/plain');
+          assert.equal(result.payload.size, 3);
+          assert.isUndefined(result.blob);
+        });
+
+        test('Restores multipart data', () => {
+          const result = PayloadProcessor.restorePayload({
+            multipart: [{
+              isFile: false,
+              name: 'test-name',
+              value: 'test-value'
+            }]
+          });
+          assert.ok(result.payload);
+          const data = result.payload.get('test-name');
+          assert.equal(data, 'test-value');
+          assert.isUndefined(result.multipart);
+        });
+      });
     });
     </script>
   </body>

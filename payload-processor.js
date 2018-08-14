@@ -130,6 +130,29 @@ class PayloadProcessor {
     });
   }
   /**
+   * Restores creates payload meta entry into it's original form.
+   * @param {Object} request ArcRequest object
+   * @return {Object} Processed request
+   */
+  static restorePayload(request) {
+    if (request.multipart) {
+      try {
+        request.payload = this.restoreMultipart(request.multipart);
+      } catch (e) {
+        console.warn('Unable to restore payload.', e);
+      }
+      delete request.multipart;
+    } else if (request.blob) {
+      try {
+        request.payload = this._dataURLtoBlob(request.blob);
+      } catch (e) {
+        console.warn('Unable to restore payload.', e);
+      }
+      delete request.blob;
+    }
+    return request;
+  }
+  /**
    * Restores FormData from ARC data model.
    *
    * @param {Array<Object>} model ARC model for multipart.
