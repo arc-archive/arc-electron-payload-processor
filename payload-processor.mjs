@@ -4,7 +4,7 @@
  * It processes `FormData` and `Blob` payloads into string and restores
  * them to original state.
  */
-class PayloadProcessor {
+export class PayloadProcessor {
   /**
    * Transforms request pyload to string if needed.
    * Note, this returns copy of the object if any transformation is applied.
@@ -208,9 +208,4 @@ class PayloadProcessor {
     }
     return new Blob([u8arr], {type: mime});
   }
-}
-if (exports) {
-  exports.PayloadProcessor = PayloadProcessor;
-} else {
-  export default PayloadProcessor;
 }
