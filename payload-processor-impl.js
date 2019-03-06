@@ -211,6 +211,4 @@ class PayloadProcessor {
 }
 if (exports) {
   exports.PayloadProcessor = PayloadProcessor;
-} else {
-  export default PayloadProcessor;
 }
