@@ -209,8 +209,4 @@ class PayloadProcessor {
     return new Blob([u8arr], {type: mime});
   }
 }
-if (exports) {
-  exports.PayloadProcessor = PayloadProcessor;
-} else {
-  export default PayloadProcessor;
-}
+exports.PayloadProcessor = PayloadProcessor;
