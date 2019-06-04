@@ -7,8 +7,7 @@
   "scripts": {
     "test": "karma start --coverage",
     "test:watch": "karma start --auto-watch=true --single-run=false",
-    "update-types": "gen-typescript-declarations --deleteExisting --outDir .",
-    "test-node": "mocha test/*.node.test.js"
+    "update-types": "gen-typescript-declarations --deleteExisting --outDir ."
   },
   "keywords": [
     "arc",
