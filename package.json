@@ -3,9 +3,12 @@
   "version": "0.2.3",
   "description": "An electron module to transform ARC request data into a serializable form in the renderer process",
   "main": "payload-processor.js",
+  "module": "payload-processor.js",
   "scripts": {
-    "test": "polymer test --plugin local",
-    "update-types": "gen-typescript-declarations --deleteExisting --outDir ."
+    "test": "karma start --coverage",
+    "test:watch": "karma start --auto-watch=true --single-run=false",
+    "update-types": "gen-typescript-declarations --deleteExisting --outDir .",
+    "test-node": "mocha test/*.node.test.js"
   },
   "keywords": [
     "arc",
@@ -27,6 +30,12 @@
     "email": "arc@mulesoft.com"
   },
   "devDependencies": {
-    "@polymer/gen-typescript-declarations": "^1.6.1"
+    "@open-wc/testing": "^0.12.5",
+    "@open-wc/testing-karma": "^2.0.3",
+    "@polymer/gen-typescript-declarations": "^1.6.1",
+    "lit-html": "^1.1.0"
+  },
+  "dependencies": {
+    "esm": "^3.2.25"
   }
 }

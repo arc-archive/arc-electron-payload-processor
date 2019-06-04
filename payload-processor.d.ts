@@ -5,86 +5,9 @@
  *   https://github.com/Polymer/tools/tree/master/packages/gen-typescript-declarations
  *
  * To modify these typings, edit the source file(s):
- *   payload-processor.html
  *   payload-processor.js
  */
 
 
 // tslint:disable:variable-name Describing an API that's defined elsewhere.
-// tslint:disable:no-any describes the API as best we are able today
 
-/**
- * A helper class that processes payload before saving it to a
- * datastore or file.
- * It processes `FormData` and `Blob` payloads into string and restores
- * them to original state.
- */
-declare class PayloadProcessor {
-
-  /**
-   * Transforms request pyload to string if needed.
-   * Note, this returns copy of the object if any transformation is applied.
-   *
-   * @param request ArcRequest object
-   * @returns Promise resolved when payload has been processed.
-   */
-  static payloadToString(request: object|null): Promise<any>|null;
-
-  /**
-   * Computes `multipart` list value to replace FormData with array that can
-   * be stored in the datastore.
-   *
-   * @param payload FormData object
-   * @returns Promise resolved to a form part representation.
-   */
-  static _createMultipartEntry(payload: FormData|null): Promise<any>|null;
-
-  /**
-   * Recuresively iterates over form data and appends result of creating the
-   * part object to the `result` array.
-   *
-   * Each part entry contains `name` as a form part name, value as a string
-   * representation of the value and `isFile` to determine is the value is
-   * acttually a string or a file data.
-   *
-   * @param iterator FormData iterator
-   * @param textParts From `_arcMeta` property. List of blobs
-   * that should be treated as text parts.
-   * @param result An array where the results are appended to.
-   * It creates new result object when it's not passed.
-   * @returns A promise resolved to the `result` array.
-   */
-  static _computeFormDataEntry(iterator: Iterator|null, textParts: Array<String|null>|null, result: Array<object|null>|null): Promise<any>|null;
-
-  /**
-   * Converts blob data to base64 string.
-   *
-   * @param blob File or blob object to be translated to string
-   * @returns Promise resolved to a base64 string data from the file.
-   */
-  static _blobToString(blob: Blob|null): Promise<any>|null;
-
-  /**
-   * Restores creates payload meta entry into it's original form.
-   *
-   * @param request ArcRequest object
-   * @returns Processed request
-   */
-  static restorePayload(request: object|null): object|null;
-
-  /**
-   * Restores FormData from ARC data model.
-   *
-   * @param model ARC model for multipart.
-   * @returns Restored form data
-   */
-  static restoreMultipart(model: Array<object|null>|null): FormData|null;
-
-  /**
-   * Converts dataurl string to blob
-   *
-   * @param dataurl Data url from blob value.
-   * @returns Restored blob value
-   */
-  static _dataURLtoBlob(dataurl: String|null): Blob|null;
-}

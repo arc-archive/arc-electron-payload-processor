@@ -9,4 +9,4 @@ bower.json
 .travis.yml
 index.html
 polymer.json
-bower_components
+karma.conf.js
