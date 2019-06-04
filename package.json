@@ -1,6 +1,6 @@
 {
   "name": "@advanced-rest-client/arc-electron-payload-processor",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "An electron module to transform ARC request data into a serializable form in the renderer process",
   "main": "payload-processor.js",
   "module": "payload-processor.js",
