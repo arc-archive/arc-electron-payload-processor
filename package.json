@@ -1,13 +1,12 @@
 {
   "name": "@advanced-rest-client/arc-electron-payload-processor",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "description": "An electron module to transform ARC request data into a serializable form in the renderer process",
   "main": "payload-processor.js",
-  "module": "payload-processor.js",
+  "module": "payload-processor-esm.js",
   "scripts": {
     "test": "karma start --coverage",
-    "test:watch": "karma start --auto-watch=true --single-run=false",
-    "update-types": "gen-typescript-declarations --deleteExisting --outDir ."
+    "test:watch": "karma start --auto-watch=true --single-run=false"
   },
   "keywords": [
     "arc",
@@ -15,8 +14,10 @@
     "payload"
   ],
   "authors": [
-    "Pawel Psztyc",
-    "The Advanced REST client authors <arc@mulesoft.com>"
+    "Pawel Psztyc"
+  ],
+  "contributors": [
+    "Your name can be here!"
   ],
   "license": "Apache-2.0",
   "private": false,
@@ -29,12 +30,12 @@
     "email": "arc@mulesoft.com"
   },
   "devDependencies": {
-    "@open-wc/testing": "^2.3.3",
-    "@open-wc/testing-karma": "^3.1.29",
-    "@polymer/gen-typescript-declarations": "^1.6.2",
-    "lit-html": "^1.1.2"
+    "@open-wc/testing": "^2.5.29",
+    "@open-wc/testing-karma": "^4.0.8",
+    "lit-html": "^1.3.0"
   },
   "dependencies": {
+    "@advanced-rest-client/arc-types": "^0.2.1",
     "esm": "^3.2.25"
   }
 }

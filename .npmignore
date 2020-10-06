@@ -1,12 +1,4 @@
 coverage/
 test/
-gen-tsd.json
-wct.conf.json
-CONTRIBUTING.md
-analysis.json
-demo/
-bower.json
 .travis.yml
-index.html
-polymer.json
 karma.conf.js

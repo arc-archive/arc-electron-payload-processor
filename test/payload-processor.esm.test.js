@@ -1,10 +1,17 @@
 import { assert } from '@open-wc/testing';
-import {PayloadProcessor} from '../payload-processor-esm.js';
+import { PayloadProcessor } from '../payload-processor-esm.js';
 
-describe('arc-electron-payload-processor', () => {
+describe('PayloadProcessor', () => {
+  const initRequest = {
+    url: 'https://domain.com',
+    method: 'POST',
+    headers: '',
+    type: 'saved',
+  };
+
   describe('payloadToString()', () => {
-    it('Resolves to the same object when no payload', async () => {
-      const obj = {};
+    it('returns the same object when no payload', async () => {
+      const obj = { ...initRequest };
       const result = await PayloadProcessor.payloadToString(obj);
       assert.deepEqual(result, obj);
     });
@@ -12,7 +19,8 @@ describe('arc-electron-payload-processor', () => {
     it('Creates "blob" property from Blob instance', async () => {
       const b = new Blob(['***'], {type: 'text/plain'});
       const obj = {
-        payload: b
+        ...initRequest,
+        payload: b,
       };
       const result = await PayloadProcessor.payloadToString(obj);
       assert.equal(result.blob, 'data:text/plain;base64,Kioq');
@@ -21,147 +29,136 @@ describe('arc-electron-payload-processor', () => {
     it('Removes "payload" with Blob instance', async () => {
       const b = new Blob(['***'], {type: 'text/plain'});
       const obj = {
-        payload: b
+        ...initRequest,
+        payload: b,
       };
       const result = await PayloadProcessor.payloadToString(obj);
       assert.isUndefined(result.payload);
     });
 
-    it('Creates "multipart" property from FormData instance', async () => {
+    it('creates "multipart" property from FormData instance', async () => {
       const b = new Blob(['***'], {type: 'text/plain'});
       const fd = new FormData();
       fd.append('file', b, 'file-name');
       fd.append('text', 'abcd');
       fd.append('text-part', b, 'text-part');
       const obj = {
-        payload: fd
+        ...initRequest,
+        payload: fd,
       };
       const result = await PayloadProcessor.payloadToString(obj);
       assert.typeOf(result.multipart, 'array');
       assert.lengthOf(result.multipart, 3);
     });
 
-    it('Removes "payload" with FormData instance', async () => {
+    it('removes "payload" with FormData instance', async () => {
       const b = new Blob(['***'], {type: 'text/plain'});
       const fd = new FormData();
       fd.append('file', b, 'file-name');
       const obj = {
-        payload: fd
+        ...initRequest,
+        payload: fd,
       };
       const result = await PayloadProcessor.payloadToString(obj);
       assert.isUndefined(result.payload);
     });
 
-    it('Resolves to the same object when payload is string', async () => {
+    it('resolves to the same object when payload is string', async () => {
       const obj = {
-        payload: 'test'
+        ...initRequest,
+        payload: 'test',
       };
       const result = await PayloadProcessor.payloadToString(obj);
       assert.deepEqual(result, obj);
     });
   });
 
-  describe('_blobToString()', function() {
+  describe('blobToString()', () => {
     const b = new Blob(['***'], {type: 'text/plain'});
-    it('Returns a promise', function() {
-      const result = PayloadProcessor._blobToString(b);
-      assert.typeOf(result.then, 'function');
-      return result;
+
+    it('returns a string', async () => {
+      const result = await PayloadProcessor.blobToString(b);
+      assert.typeOf(result, 'string')
     });
 
-    it('Promise results to a string', function() {
-      return PayloadProcessor._blobToString(b)
-      .then((result) => assert.typeOf(result, 'string'));
-    });
-
-    it('String is a valid data url', function() {
-      return PayloadProcessor._blobToString(b)
-      .then((result) => assert.equal(result, 'data:text/plain;base64,Kioq'));
+    it('returns a valid data url', async () => {
+      const result = await PayloadProcessor.blobToString(b);
+      assert.equal(result, 'data:text/plain;base64,Kioq');
     });
   });
 
-  describe('_dataURLtoBlob()', function() {
+  describe('dataURLtoBlob()', () => {
     const data = 'data:text/plain;base64,Kioq';
 
-    it('Converts dataurl to blob', () => {
-      const result = PayloadProcessor._dataURLtoBlob(data);
+    it('converts data-url to a blob', () => {
+      const result = PayloadProcessor.dataURLtoBlob(data);
       assert.typeOf(result, 'blob');
     });
 
-    it('Restores the type', () => {
-      const result = PayloadProcessor._dataURLtoBlob(data);
+    it('restores the type', () => {
+      const result = PayloadProcessor.dataURLtoBlob(data);
       assert.equal(result.type, 'text/plain');
     });
 
-    it('Size match', () => {
-      const result = PayloadProcessor._dataURLtoBlob(data);
+    it('matches the size', () => {
+      const result = PayloadProcessor.dataURLtoBlob(data);
       assert.equal(result.size, 3);
     });
   });
 
-  describe('_createMultipartEntry()', function() {
-    let fd;
-    beforeEach(function() {
+  describe('createMultipartEntry()', () => {
+    let fd = /** @type FormData */ (null);
+    beforeEach(() => {
       const b = new Blob(['***'], {type: 'text/plain'});
       fd = new FormData();
       fd.append('file', b, 'file-name');
       fd.append('text', 'abcd');
-      fd.append('text-part', b, 'text-part');
-      fd._arcMeta = {
-        textParts: ['text-part']
-      };
+      fd.append('text-part', b, 'blob');
     });
 
-    it('Returns a promise', function() {
-      const result = PayloadProcessor._createMultipartEntry(fd);
-      assert.typeOf(result.then, 'function');
-      return result;
+    it('returns an array with transformed items', async () => {
+      const result = await PayloadProcessor.createMultipartEntry(fd);
+      assert.typeOf(result, 'array');
+      assert.lengthOf(result, 3);
     });
 
-    it('Promise results to an array', function() {
-      return PayloadProcessor._createMultipartEntry(fd)
-      .then((result) => assert.typeOf(result, 'array'));
+    it('computes the file part', async () => {
+      const data = await PayloadProcessor.createMultipartEntry(fd);
+      const [part] = data;
+      assert.isTrue(part.isFile, 'isFile is set');
+      assert.equal(part.name, 'file', 'name is set');
+      assert.equal(part.value, 'data:text/plain;base64,Kioq', 'value is transformed');
+      assert.equal(part.fileName, 'file-name', 'fileName is set');
+      assert.isUndefined(part.type, 'type is not set');
     });
 
-    it('Computes file part', () => {
-      return PayloadProcessor._createMultipartEntry(fd)
-      .then((data) => {
-        const part = data[0];
-        assert.isTrue(part.isFile);
-        assert.equal(part.name, 'file');
-        assert.equal(part.value, 'data:text/plain;base64,Kioq');
-      });
+    it('computes the text part', async () => {
+      const data = await PayloadProcessor.createMultipartEntry(fd);
+      const part = data[1];
+      assert.isFalse(part.isFile, 'isFile is not set');
+      assert.equal(part.name, 'text', 'name is set');
+      assert.equal(part.value, 'abcd', 'value is not transformed');
+      assert.isUndefined(part.fileName, 'fileName is not set');
+      assert.isUndefined(part.type, 'type is not set');
     });
 
-    it('Computes text part', () => {
-      return PayloadProcessor._createMultipartEntry(fd)
-      .then((data) => {
-        const part = data[1];
-        assert.isFalse(part.isFile);
-        assert.equal(part.name, 'text');
-        assert.equal(part.value, 'abcd');
-      });
-    });
-
-    it('Sets isTextBlob', () => {
-      return PayloadProcessor._createMultipartEntry(fd)
-      .then((data) => {
-        const part = data[2];
-        assert.isFalse(part.isFile);
-        assert.isTrue(part.isTextBlob);
-        assert.equal(part.name, 'text-part');
-        assert.equal(part.value, 'data:text/plain;base64,Kioq');
-      });
+    it('computes the text part with a content type', async () => {
+      const data = await PayloadProcessor.createMultipartEntry(fd);
+      const part = data[2];
+      assert.isFalse(part.isFile, 'isFile is not set');
+      assert.equal(part.type, 'text/plain');
+      assert.equal(part.name, 'text-part');
+      assert.equal(part.value, 'data:text/plain;base64,Kioq');
     });
   });
 
-  describe('restoreMultipart()', function() {
-    it('Returns empty FormData when no model', () => {
-      const result = PayloadProcessor.restoreMultipart();
+  describe('restoreMultipart()', () => {
+    it('returns empty FormData when no model', () => {
+      const result = PayloadProcessor.restoreMultipart(undefined);
       assert.typeOf(result, 'formdata');
     });
 
-    it('Processes text entry', () => {
+    it('processes a text entry', () => {
       const fd = PayloadProcessor.restoreMultipart([{
         isFile: false,
         name: 'test-name',
@@ -171,49 +168,53 @@ describe('arc-electron-payload-processor', () => {
       assert.equal(result, 'test-value');
     });
 
-    it('Processes text entry with content type', () => {
+    it('processes text entry with a content type', () => {
       const fd = PayloadProcessor.restoreMultipart([{
         isFile: false,
-        isTextBlob: true,
+        type: 'text/plain',
         name: 'test-name',
         value: 'data:text/plain;base64,Kioq'
       }]);
       const result = fd.get('test-name');
+      // @ts-ignore
       assert.equal(result.type, 'text/plain');
     });
 
-    it('Sets text parts meta data', () => {
+    it('processes a file', () => {
       const fd = PayloadProcessor.restoreMultipart([{
-        isFile: false,
-        isTextBlob: true,
+        isFile: true,
         name: 'test-name',
         value: 'data:text/plain;base64,Kioq'
       }]);
-      assert.typeOf(fd._arcMeta, 'object');
-      assert.typeOf(fd._arcMeta.textParts, 'array');
-      assert.equal(fd._arcMeta.textParts[0], 'test-name');
+      const result = fd.get('test-name');
+      // @ts-ignore
+      assert.equal(result.type, 'text/plain');
     });
   });
 
-  describe('restoreMultipart()', () => {
-    it('Do nothing when no created payload data', () => {
-      const result = PayloadProcessor.restorePayload({});
-      assert.deepEqual(result, {});
+  describe('restorePayload()', () => {
+    it('does nothing when no created payload data', () => {
+      const result = PayloadProcessor.restorePayload({ ...initRequest });
+      assert.deepEqual(result, initRequest);
     });
 
-    it('Restores blob data', () => {
+    it('restores a blob data', () => {
       const data = 'data:text/plain;base64,Kioq';
       const result = PayloadProcessor.restorePayload({
-        blob: data
+        ...initRequest,
+        blob: data,
       });
       assert.typeOf(result.payload, 'blob');
+      // @ts-ignore
       assert.equal(result.payload.type, 'text/plain');
+      // @ts-ignore
       assert.equal(result.payload.size, 3);
       assert.isUndefined(result.blob);
     });
 
-    it('Restores multipart data', () => {
+    it('restores a form data', () => {
       const result = PayloadProcessor.restorePayload({
+        ...initRequest,
         multipart: [{
           isFile: false,
           name: 'test-name',
@@ -221,6 +222,7 @@ describe('arc-electron-payload-processor', () => {
         }]
       });
       assert.ok(result.payload);
+      // @ts-ignore
       const data = result.payload.get('test-name');
       assert.equal(data, 'test-value');
       assert.isUndefined(result.multipart);

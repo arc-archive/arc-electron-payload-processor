@@ -1,3 +1,7 @@
+/** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCHistoryRequest} ARCHistoryRequest */
+/** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCSavedRequest} ARCSavedRequest */
+/** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.MultipartTransformer} MultipartTransformer */
+
 /**
  * A helper class that processes payload before saving it to a
  * datastore or file.
@@ -6,38 +10,37 @@
  */
 export class PayloadProcessor {
   /**
-   * Transforms request pyload to string if needed.
+   * Transforms request payload to string if needed.
    * Note, this returns copy of the object if any transformation is applied.
    *
-   * @param {Object} request ArcRequest object
-   * @return {Promise} Promise resolved when payload has been processed.
+   * @param {ARCHistoryRequest|ARCSavedRequest} request ArcRequest object
+   * @return {Promise<ARCHistoryRequest|ARCSavedRequest>} A copy of the request object with transformed payload
    */
-  static payloadToString(request) {
+  static async payloadToString(request) {
     if (!request.payload) {
-      return Promise.resolve(request);
+      return request;
     }
     if (request.payload instanceof FormData) {
-      const data = Object.assign({}, request);
-      if (!data.payload.entries) {
+      const data = { ...request };
+      const body = /** @type FormData */ (data.payload);
+      // @ts-ignore
+      if (!body.entries) {
         data.payload = undefined;
-        return Promise.resolve(data);
+        return data;
       }
-      return PayloadProcessor._createMultipartEntry(data.payload)
-      .then((entry) => {
-        data.payload = undefined;
-        data.multipart = entry;
-        return data;
-      });
+      const entry = await PayloadProcessor.createMultipartEntry(body);
+      data.payload = undefined;
+      data.multipart = entry;
+      return data;
     } else if (request.payload instanceof Blob) {
-      const data = Object.assign({}, request);
-      return PayloadProcessor._blobToString(data.payload)
-      .then((str) => {
-        data.payload = undefined;
-        data.blob = str;
-        return data;
-      });
+      const data = { ...request };
+      const body = /** @type Blob */ (data.payload);
+      const result = await PayloadProcessor.blobToString(body);
+      data.payload = undefined;
+      data.blob = result;
+      return data;
     }
-    return Promise.resolve(request);
+    return request;
   }
 
   /**
@@ -45,83 +48,63 @@ export class PayloadProcessor {
    * be stored in the datastore.
    *
    * @param {FormData} payload FormData object
-   * @return {Promise} Promise resolved to a form part representation.
+   * @return {Promise<MultipartTransformer[]>} A promise resolved to a datastore safe entries.
    */
-  static _createMultipartEntry(payload) {
-    const iterator = payload.entries();
-    let textParts;
-    if (payload._arcMeta && payload._arcMeta.textParts) {
-      textParts = payload._arcMeta.textParts;
+  static createMultipartEntry(payload) {
+    const promises = [];
+    // @ts-ignore
+    for(const pair of payload.entries()) {
+      const [name, file] = pair;
+      promises.push(PayloadProcessor.computeFormDataEntry(name, file));
     }
-    return PayloadProcessor._computeFormDataEntry(iterator, textParts);
+    return Promise.all(promises);
   }
+
   /**
-   * Recuresively iterates over form data and appends result of creating the
-   * part object to the `result` array.
+   * Transforms a FormData entry into a safe-to-store text entry
    *
-   * Each part entry contains `name` as a form part name, value as a string
-   * representation of the value and `isFile` to determine is the value is
-   * acttually a string or a file data.
-   *
-   * @param {Iterator} iterator FormData iterator
-   * @param {?Array<String>} textParts From `_arcMeta` property. List of blobs
-   * that should be treated as text parts.
-   * @param {?Array<Object>} result An array where the results are appended to.
-   * It creates new result object when it's not passed.
-   * @return {Promise} A promise resolved to the `result` array.
+   * @param {string} name The part name
+   * @param {string|File} file The part value
+   * @return {Promise<MultipartTransformer>} Transformed FormData part to a datastore safe entry.
    */
-  static _computeFormDataEntry(iterator, textParts, result) {
-    result = result || [];
-    const item = iterator.next();
-    if (item.done) {
-      return Promise.resolve(result);
-    }
-    const entry = item.value;
-    const name = entry[0];
-    const value = entry[1];
-    let promise;
-    let isBlob = false;
-    let isTextBlob = false;
-    if (value instanceof Blob) {
-      promise = PayloadProcessor._blobToString(value);
-      if (textParts && textParts.indexOf(name) !== -1) {
-        isBlob = false;
-        isTextBlob = true;
-      } else {
-        isBlob = true;
-      }
-    } else {
-      promise = Promise.resolve(value);
-    }
-    return promise
-    .then((str) => {
-      const _part = {
-        name: name,
-        value: str,
-        isFile: isBlob
+  static async computeFormDataEntry(name, file) {
+    if (typeof file === 'string') {
+      // when adding an item to the FormData object without 3rd parameter of the append function
+      // then  the value is a string.
+      return {
+        isFile: false,
+        name,
+        value: file,
       };
-      if (isTextBlob) {
-        _part.isTextBlob = isTextBlob;
-      }
-      return _part;
-    })
-    .then((part) => {
-      result.push(part);
-      return PayloadProcessor._computeFormDataEntry(
-        iterator, textParts, result);
+    }
+    const value = await PayloadProcessor.blobToString(file);
+    const part = /** @type MultipartTransformer */ ({
+      isFile: false,
+      name,
+      value,
     });
+    if (file.name === 'blob') {
+      // ARC adds the "blob" filename when the content type is set on the editor.
+      // otherwise it wouldn't be possible to set the content type value.
+      part.type = file.type;
+    } else {
+      part.isFile = true;
+      part.fileName = file.name;
+    }
+    return part;
   }
+
   /**
    * Converts blob data to base64 string.
    *
    * @param {Blob} blob File or blob object to be translated to string
-   * @return {Promise} Promise resolved to a base64 string data from the file.
+   * @return {Promise<string>} Promise resolved to a base64 string data from the file.
    */
-  static _blobToString(blob) {
+  static blobToString(blob) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = function(e) {
-        resolve(e.target.result);
+        resolve(String(e.target.result));
       };
       reader.onerror = function() {
         reject(new Error('Unable to convert blob to string.'));
@@ -129,22 +112,24 @@ export class PayloadProcessor {
       reader.readAsDataURL(blob);
     });
   }
+
   /**
-   * Restores creates payload meta entry into it's original form.
-   * @param {Object} request ArcRequest object
-   * @return {Object} Processed request
+   * Restores the payload into its original format.
+   * 
+   * @param {ARCHistoryRequest|ARCSavedRequest} request ArcRequest object
+   * @return {ARCHistoryRequest|ARCSavedRequest} Processed request
    */
   static restorePayload(request) {
     if (request.multipart) {
       try {
-        request.payload = this.restoreMultipart(request.multipart);
+        request.payload = PayloadProcessor.restoreMultipart(request.multipart);
       } catch (e) {
         console.warn('Unable to restore payload.', e);
       }
       delete request.multipart;
     } else if (request.blob) {
       try {
-        request.payload = this._dataURLtoBlob(request.blob);
+        request.payload = PayloadProcessor.dataURLtoBlob(request.blob);
       } catch (e) {
         console.warn('Unable to restore payload.', e);
       }
@@ -152,53 +137,42 @@ export class PayloadProcessor {
     }
     return request;
   }
+
   /**
    * Restores FormData from ARC data model.
    *
-   * @param {Array<Object>} model ARC model for multipart.
+   * @param {MultipartTransformer[]} model ARC model for multipart.
    * @return {FormData} Restored form data
    */
   static restoreMultipart(model) {
     const fd = new FormData();
-    if (!model || !model.length) {
+    if (!Array.isArray(model) || !model.length) {
       return fd;
     }
-    fd._arcMeta = {
-      textParts: []
-    };
     model.forEach((part) => {
-      const name = part.name;
-      let value;
-      if (part.isFile) {
-        try {
-          value = PayloadProcessor._dataURLtoBlob(part.value);
-        } catch (e) {
-          value = '';
-        }
+      const { isFile, name, value, type, fileName } = part;
+      let blob;
+      if (isFile) {
+        blob = PayloadProcessor.dataURLtoBlob(value);
+        fd.append(name, blob, fileName);
+      } else if (type) {
+        blob = PayloadProcessor.dataURLtoBlob(value);
+        fd.append(name, blob, 'blob');
       } else {
-        value = part.value;
-        if (part.isTextBlob) {
-          fd._arcMeta.textParts.push(name);
-          try {
-            value = PayloadProcessor._dataURLtoBlob(part.value);
-          } catch (e) {
-            value = '';
-          }
-        }
+        fd.append(name, value);
       }
-      fd.append(name, value);
     });
     return fd;
   }
 
   /**
-   * Converts dataurl string to blob
+   * Converts data-url string to blob
    *
-   * @param {String} dataurl Data url from blob value.
+   * @param {string} dataUrl Data url from blob value.
    * @return {Blob} Restored blob value
    */
-  static _dataURLtoBlob(dataurl) {
-    const arr = dataurl.split(',');
+  static dataURLtoBlob(dataUrl) {
+    const arr = dataUrl.split(',');
     const mime = arr[0].match(/:(.*?);/)[1];
     const bstr = atob(arr[1]);
     let n = bstr.length;
@@ -206,6 +180,6 @@ export class PayloadProcessor {
     while (n--) {
       u8arr[n] = bstr.charCodeAt(n);
     }
-    return new Blob([u8arr], {type: mime});
+    return new Blob([u8arr], { type: mime });
   }
 }
