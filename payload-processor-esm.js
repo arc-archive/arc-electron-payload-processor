@@ -75,6 +75,7 @@ export class PayloadProcessor {
         isFile: false,
         name,
         value: file,
+        enabled: true,
       };
     }
     const value = await PayloadProcessor.blobToString(file);
@@ -82,6 +83,7 @@ export class PayloadProcessor {
       isFile: false,
       name,
       value,
+      enabled: true,
     });
     if (file.name === 'blob') {
       // ARC adds the "blob" filename when the content type is set on the editor.
@@ -150,7 +152,10 @@ export class PayloadProcessor {
       return fd;
     }
     model.forEach((part) => {
-      const { isFile, name, value, type, fileName } = part;
+      const { isFile, name, value, type, fileName, enabled } = part;
+      if (enabled === false) {
+        return;
+      }
       let blob;
       if (isFile) {
         blob = PayloadProcessor.dataURLtoBlob(value);

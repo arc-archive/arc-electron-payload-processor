@@ -129,6 +129,7 @@ describe('PayloadProcessor', () => {
       assert.equal(part.name, 'file', 'name is set');
       assert.equal(part.value, 'data:text/plain;base64,Kioq', 'value is transformed');
       assert.equal(part.fileName, 'file-name', 'fileName is set');
+      assert.isTrue(part.enabled, 'has the enabled property');
       assert.isUndefined(part.type, 'type is not set');
     });
 
@@ -138,6 +139,7 @@ describe('PayloadProcessor', () => {
       assert.isFalse(part.isFile, 'isFile is not set');
       assert.equal(part.name, 'text', 'name is set');
       assert.equal(part.value, 'abcd', 'value is not transformed');
+      assert.isTrue(part.enabled, 'has the enabled property');
       assert.isUndefined(part.fileName, 'fileName is not set');
       assert.isUndefined(part.type, 'type is not set');
     });
@@ -149,6 +151,7 @@ describe('PayloadProcessor', () => {
       assert.equal(part.type, 'text/plain');
       assert.equal(part.name, 'text-part');
       assert.equal(part.value, 'data:text/plain;base64,Kioq');
+      assert.isTrue(part.enabled, 'has the enabled property');
     });
   });
 
@@ -189,6 +192,16 @@ describe('PayloadProcessor', () => {
       const result = fd.get('test-name');
       // @ts-ignore
       assert.equal(result.type, 'text/plain');
+    });
+
+    it('ignores disabled items', () => {
+      const fd = PayloadProcessor.restoreMultipart([{
+        isFile: true,
+        name: 'test-name',
+        value: 'data:text/plain;base64,Kioq',
+        enabled: false,
+      }]);
+      assert.isFalse(fd.has('test-name'));
     });
   });
 
