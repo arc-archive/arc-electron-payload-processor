@@ -1,9 +1,9 @@
 {
   "name": "@advanced-rest-client/arc-electron-payload-processor",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "An electron module to transform ARC request data into a serializable form in the renderer process",
   "main": "payload-processor.js",
-  "module": "payload-processor-esm.js",
+  "module": "index.js",
   "scripts": {
     "test": "karma start --coverage",
     "test:watch": "karma start --auto-watch=true --single-run=false"

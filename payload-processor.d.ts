@@ -1,1 +1,1 @@
-export { PayloadProcessor } from './payload-processor-esm'
+export { PayloadProcessor } from './src/PayloadProcessor'
