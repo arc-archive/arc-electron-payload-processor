@@ -241,4 +241,21 @@ describe('PayloadProcessor', () => {
       assert.isUndefined(result.multipart);
     });
   });
+
+  describe('fileToString()', () => {
+    let file = /** @type File */ (null);
+    beforeEach(() => {
+      const blob = new Blob(['test content'], {type: 'text/plain'});
+      // @ts-ignore
+      blob.name = 'test-file.txt';
+      // @ts-ignore
+      blob.lastModified = 1519211809934;
+      file = /** @type File */ (blob);
+    });
+
+    it('reads file as text', async () => {
+      const result = await PayloadProcessor.fileToString(file);
+      assert.equal(result, 'test content');
+    });
+  });
 });

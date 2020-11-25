@@ -1,4 +1,4 @@
-import { ArcRequest } from '@advanced-rest-client/arc-types';
+import { ArcRequest, RequestBody } from '@advanced-rest-client/arc-types';
 
 /**
  * A helper class that processes payload before saving it to a
@@ -24,7 +24,7 @@ export declare class PayloadProcessor {
    * @param payload FormData object
    * @returns A promise resolved to a datastore safe entries.
    */
-  static createMultipartEntry(payload: FormData): Promise<ArcRequest.MultipartTransformer[]>;
+  static createMultipartEntry(payload: FormData): Promise<RequestBody.MultipartBody[]>;
 
   /**
    * Transforms a FormData entry into a safe-to-store text entry
@@ -33,7 +33,7 @@ export declare class PayloadProcessor {
    * @param file The part value
    * @returns Transformed FormData part to a datastore safe entry.
    */
-  static computeFormDataEntry(name: string, file: string|File): Promise<ArcRequest.MultipartTransformer>;
+  static computeFormDataEntry(name: string, file: string|File): Promise<RequestBody.MultipartBody>;
 
   /**
    * Converts blob data to base64 string.
@@ -57,7 +57,7 @@ export declare class PayloadProcessor {
    * @param model ARC model for multipart.
    * @return Restored form data
    */
-  static restoreMultipart(model: ArcRequest.MultipartTransformer[]): FormData;
+  static restoreMultipart(model: RequestBody.MultipartBody[]): FormData;
 
   /**
    * Converts data-url string to blob
@@ -66,4 +66,12 @@ export declare class PayloadProcessor {
    * @return Restored blob value
    */
   static dataURLtoBlob(dataUrl: string): Blob;
+
+  /**
+   * Converts blob data to a string.
+   *
+   * @param blob File or blob object to be translated to string
+   * @returns Promise resolved to a text value of the file
+   */
+  static fileToString(blob: File): Promise<string>;
 }

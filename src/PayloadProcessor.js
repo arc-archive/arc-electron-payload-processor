@@ -1,6 +1,6 @@
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCHistoryRequest} ARCHistoryRequest */
 /** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.ARCSavedRequest} ARCSavedRequest */
-/** @typedef {import('@advanced-rest-client/arc-types').ArcRequest.MultipartTransformer} MultipartTransformer */
+/** @typedef {import('@advanced-rest-client/arc-types').RequestBody.MultipartBody} MultipartBody */
 
 /**
  * A helper class that processes payload before saving it to a
@@ -48,7 +48,7 @@ export class PayloadProcessor {
    * be stored in the datastore.
    *
    * @param {FormData} payload FormData object
-   * @return {Promise<MultipartTransformer[]>} A promise resolved to a datastore safe entries.
+   * @return {Promise<MultipartBody[]>} A promise resolved to a datastore safe entries.
    */
   static createMultipartEntry(payload) {
     const promises = [];
@@ -65,7 +65,7 @@ export class PayloadProcessor {
    *
    * @param {string} name The part name
    * @param {string|File} file The part value
-   * @return {Promise<MultipartTransformer>} Transformed FormData part to a datastore safe entry.
+   * @return {Promise<MultipartBody>} Transformed FormData part to a datastore safe entry.
    */
   static async computeFormDataEntry(name, file) {
     if (typeof file === 'string') {
@@ -79,7 +79,7 @@ export class PayloadProcessor {
       };
     }
     const value = await PayloadProcessor.blobToString(file);
-    const part = /** @type MultipartTransformer */ ({
+    const part = /** @type MultipartBody */ ({
       isFile: false,
       name,
       value,
@@ -143,7 +143,7 @@ export class PayloadProcessor {
   /**
    * Restores FormData from ARC data model.
    *
-   * @param {MultipartTransformer[]} model ARC model for multipart.
+   * @param {MultipartBody[]} model ARC model for multipart.
    * @return {FormData} Restored form data
    */
   static restoreMultipart(model) {
@@ -186,5 +186,24 @@ export class PayloadProcessor {
       u8arr[n] = bstr.charCodeAt(n);
     }
     return new Blob([u8arr], { type: mime });
+  }
+
+  /**
+   * Converts blob data to a string.
+   *
+   * @param {File} blob File or blob object to be translated to string
+   * @return {Promise<string>} Promise resolved to a text value of the file
+   */
+  static fileToString(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = (e) => {
+        resolve(String(e.target.result));
+      };
+      reader.onerror = () => {
+        reject(new Error('Unable to convert blob to string.'));
+      };
+      reader.readAsText(blob);
+    });
   }
 }
